@@ -12,4 +12,6 @@ router.get('/', (req, res) => {
   res.status(200).json({ success: true, message: 'EventNest API v1' });
 });
 
+router.use('/auth', require('./auth.routes'));
+
 module.exports = router;
