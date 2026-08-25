@@ -13,5 +13,6 @@ router.get('/', (req, res) => {
 });
 
 router.use('/auth', require('./auth.routes'));
+router.use('/organizations', require('./organization.routes'));
 
 module.exports = router;
