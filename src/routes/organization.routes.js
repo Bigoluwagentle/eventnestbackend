@@ -23,6 +23,7 @@ router.post('/accept-invite', validate(acceptInvitationSchema), controller.accep
 
 // org-scoped routes: load org + verify membership first
 router.use('/:orgId', loadOrganization, requireMembership);
+router.use('/:orgId/events', require('./event.routes'));
 
 router.patch('/:orgId', requireOrgRole('owner', 'admin'), validate(updateOrganizationSchema), controller.updateOrganization);
 router.get('/:orgId/members', controller.listMembers);
