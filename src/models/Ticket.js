@@ -8,12 +8,12 @@ const ticketSchema = new mongoose.Schema(
     ticketType: { type: mongoose.Schema.Types.ObjectId, ref: 'TicketType', required: true },
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
 
-    // human-readable reference shown in UI/emails - NOT used for validation (guessable/sequential-looking)
+    // human-readable reference for UI/emails - NOT used for validation
     ticketNumber: { type: String, required: true, unique: true },
 
-    // the actual security boundary: raw random token lives only in the QR code /
-    // the one-time response to the client; we store only its hash, same pattern as refresh tokens
-    tokenHash: { type: String, required: true, unique: true, select: false },
+    // NOTE: no stored token here. The actual scan token is derived on demand via
+    // HMAC-SHA256(ticket._id, TICKET_TOKEN_SECRET) - see utils/ticketToken.js.
+    // This lets attendees re-view their QR anytime without us ever persisting the raw token.
 
     status: {
       type: String,

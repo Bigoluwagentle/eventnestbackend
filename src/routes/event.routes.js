@@ -15,6 +15,7 @@ router.post('/', requireOrgRole('owner', 'admin', 'manager'), validate(createEve
 router.get('/', controller.listOrgEvents);
 
 router.use('/:eventId', loadEvent);
+router.use('/:eventId/ticket-types', require('./ticketType.routes'));
 
 router.get('/:eventId', controller.getEvent);
 router.patch(
