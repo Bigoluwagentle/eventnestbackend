@@ -16,6 +16,8 @@ const envSchema = z.object({
   JWT_ACCESS_EXPIRES_IN: z.string().default('15m'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('30d'),
 
+  TICKET_TOKEN_SECRET: z.string().min(32, 'TICKET_TOKEN_SECRET must be at least 32 characters'),
+
   COOKIE_SECURE: z
     .string()
     .default('false')
@@ -28,7 +30,6 @@ const envSchema = z.object({
 const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
-  // Fail fast and loud - do not let the app boot with bad config
   console.error('❌ Invalid environment configuration:');
   console.error(parsed.error.flatten().fieldErrors);
   process.exit(1);
