@@ -16,6 +16,8 @@ router.get('/', controller.listOrgEvents);
 
 router.use('/:eventId', loadEvent);
 router.use('/:eventId/ticket-types', require('./ticketType.routes'));
+router.use('/:eventId/staff', require('./eventStaff.routes'));
+router.use('/:eventId/check-in', require('./checkIn.routes'));
 
 router.get('/:eventId', controller.getEvent);
 router.patch(
