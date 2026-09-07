@@ -3,10 +3,6 @@ const asyncHandler = require('../utils/asyncHandler');
 const Organization = require('../models/Organization');
 const OrganizationMember = require('../models/OrganizationMember');
 
-/**
- * Loads the organization from :orgId in the URL and attaches it to req.organization.
- * Must run before requireMembership.
- */
 const loadOrganization = asyncHandler(async (req, res, next) => {
   const { orgId } = req.params;
   const organization = await Organization.findById(orgId);
@@ -20,9 +16,8 @@ const loadOrganization = asyncHandler(async (req, res, next) => {
 });
 
 /**
- * Verifies the authenticated user is a member of req.organization.
- * This is the core tenant-isolation check - every org-scoped route needs it.
- * Attaches the membership (with role) to req.membership.
+ * Hard requirement: blocks the request entirely if the user isn't a member.
+ * Use for org-management routes (settings, invites, member removal, etc.)
  */
 const requireMembership = asyncHandler(async (req, res, next) => {
   const membership = await OrganizationMember.findOne({
@@ -39,9 +34,19 @@ const requireMembership = asyncHandler(async (req, res, next) => {
 });
 
 /**
- * Restricts to specific org-level roles (owner/admin/manager).
- * Must run after requireMembership.
+ * Soft check: attaches req.membership if it exists, but does NOT block the
+ * request if it doesn't. Use for event-level routes where non-org-members
+ * (e.g. EventStaff) should still be able to proceed to a narrower permission check.
  */
+const attachMembershipIfExists = asyncHandler(async (req, res, next) => {
+  const membership = await OrganizationMember.findOne({
+    organization: req.organization._id,
+    user: req.user._id,
+  });
+  req.membership = membership || null;
+  next();
+});
+
 function requireOrgRole(...roles) {
   return (req, res, next) => {
     if (!req.membership || !roles.includes(req.membership.role)) {
@@ -51,4 +56,4 @@ function requireOrgRole(...roles) {
   };
 }
 
-module.exports = { loadOrganization, requireMembership, requireOrgRole };
+module.exports = { loadOrganization, requireMembership, attachMembershipIfExists, requireOrgRole };
