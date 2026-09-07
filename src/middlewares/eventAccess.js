@@ -4,16 +4,9 @@ const EventStaff = require('../models/EventStaff');
 
 const ORG_ROLES_WITH_FULL_EVENT_ACCESS = ['owner', 'admin', 'manager'];
 
-/**
- * Grants access if the user is an org owner/admin/manager (full access to all
- * events in the org), OR has an explicit EventStaff record with the required
- * permission for this specific event.
- *
- * Must run after loadOrganization + requireMembership + loadEvent.
- */
 function requireEventAccess(requiredPermission) {
   return asyncHandler(async (req, res, next) => {
-    if (ORG_ROLES_WITH_FULL_EVENT_ACCESS.includes(req.membership.role)) {
+    if (req.membership && ORG_ROLES_WITH_FULL_EVENT_ACCESS.includes(req.membership.role)) {
       return next();
     }
 
