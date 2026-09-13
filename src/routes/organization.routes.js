@@ -38,5 +38,6 @@ router.post(
 
 // event routes handle their own membership logic per-route (some need it, check-in doesn't)
 router.use('/:orgId/events', require('./event.routes'));
+router.use('/:orgId/speakers', require('./speaker.routes'));
 
 module.exports = router;
