@@ -1,8 +1,8 @@
 const Event = require('../models/Event');
+const Session = require('../models/Session');
 const AppError = require('../utils/AppError');
 const { generateUniqueSlug } = require('../utils/slugify');
 
-// Which status transitions are allowed - enforced here, not left to the client
 const VALID_TRANSITIONS = {
   draft: ['published', 'cancelled'],
   published: ['registration_closed', 'ongoing', 'cancelled'],
@@ -39,13 +39,7 @@ async function createEvent(organization, userId, data) {
     return !!existing;
   });
 
-  const event = await Event.create({
-    ...data,
-    organization: organization._id,
-    slug,
-    createdBy: userId,
-  });
-
+  const event = await Event.create({ ...data, organization: organization._id, slug, createdBy: userId });
   return event;
 }
 
@@ -76,11 +70,9 @@ async function updateEventStatus(event, newStatus) {
   if (!allowed.includes(newStatus)) {
     throw new AppError(`Cannot transition event from "${event.status}" to "${newStatus}"`, 400);
   }
-
   if (newStatus === 'published') {
     assertPublishRequirements(event);
   }
-
   event.status = newStatus;
   await event.save();
   return event;
@@ -94,11 +86,7 @@ async function deleteEvent(event) {
 }
 
 async function listPublicEvents({ page = 1, limit = 12, category, eventType, city, search, sort = 'upcoming' }) {
-  const filter = {
-    status: 'published',
-    visibility: 'public',
-    startDate: { $gte: new Date() },
-  };
+  const filter = { status: 'published', visibility: 'public', startDate: { $gte: new Date() } };
   if (category) filter.category = category;
   if (eventType) filter.eventType = eventType;
   if (city) filter['location.city'] = new RegExp(city, 'i');
@@ -131,6 +119,30 @@ async function getPublicEventBySlug(orgSlug, eventSlug) {
   return event;
 }
 
+async function getPublicSchedule(orgSlug, eventSlug) {
+  const event = await getPublicEventBySlug(orgSlug, eventSlug);
+  const sessions = await Session.find({ event: event._id })
+    .sort({ startTime: 1 })
+    .populate('speakers', 'name photo company jobTitle socialLinks');
+  return { event, sessions };
+}
+
+async function getPublicEventSpeakers(orgSlug, eventSlug) {
+  const event = await getPublicEventBySlug(orgSlug, eventSlug);
+  const sessions = await Session.find({ event: event._id }).populate(
+    'speakers',
+    'name photo bio company jobTitle socialLinks'
+  );
+
+  // dedupe speakers across sessions
+  const speakerMap = new Map();
+  sessions.forEach((s) => {
+    s.speakers.forEach((sp) => speakerMap.set(sp._id.toString(), sp));
+  });
+
+  return Array.from(speakerMap.values());
+}
+
 module.exports = {
   createEvent,
   listOrgEvents,
@@ -139,4 +151,6 @@ module.exports = {
   deleteEvent,
   listPublicEvents,
   getPublicEventBySlug,
+  getPublicSchedule,
+  getPublicEventSpeakers,
 };
