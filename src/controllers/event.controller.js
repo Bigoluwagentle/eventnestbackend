@@ -40,6 +40,16 @@ const getPublicEvent = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, data: { event } });
 });
 
+const getPublicSchedule = asyncHandler(async (req, res) => {
+  const result = await eventService.getPublicSchedule(req.params.orgSlug, req.params.eventSlug);
+  res.status(200).json({ success: true, data: result });
+});
+
+const getPublicEventSpeakers = asyncHandler(async (req, res) => {
+  const speakers = await eventService.getPublicEventSpeakers(req.params.orgSlug, req.params.eventSlug);
+  res.status(200).json({ success: true, data: { speakers } });
+});
+
 module.exports = {
   createEvent,
   listOrgEvents,
@@ -49,4 +59,6 @@ module.exports = {
   deleteEvent,
   listPublicEvents,
   getPublicEvent,
+  getPublicSchedule,
+  getPublicEventSpeakers,
 };
