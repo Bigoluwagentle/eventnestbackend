@@ -5,8 +5,9 @@ const { listPublicEventsSchema } = require('../validators/event.validator');
 
 const router = express.Router();
 
-// no auth required - public discovery
 router.get('/', validate(listPublicEventsSchema), controller.listPublicEvents);
 router.get('/:orgSlug/:eventSlug', controller.getPublicEvent);
+router.get('/:orgSlug/:eventSlug/schedule', controller.getPublicSchedule);
+router.get('/:orgSlug/:eventSlug/speakers', controller.getPublicEventSpeakers);
 
 module.exports = router;
