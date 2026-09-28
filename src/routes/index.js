@@ -16,5 +16,6 @@ router.use('/auth', require('./auth.routes'));
 router.use('/organizations', require('./organization.routes'));
 router.use('/events', require('./publicEvents.routes'));
 router.use('/registrations', require('./registration.routes'));
+router.use('/bookmarks', require('./bookmark.routes'));
 
 module.exports = router;
