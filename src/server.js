@@ -30,7 +30,7 @@ process.on('uncaughtException', (err) => {
   process.exit(1);
 });
 
-process.on('SIGTERM', () => {
-  logger.info('SIGTERM received. Shutting down gracefully.');
-  server?.close(() => logger.info('Process terminated.'));
-});
+// process.on('SIGTERM', () => {
+//   logger.info('SIGTERM received. Shutting down gracefully.');
+//   server?.close(() => logger.info('Process terminated.'));
+// });
