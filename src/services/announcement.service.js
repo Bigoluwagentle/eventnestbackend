@@ -47,4 +47,4 @@ async function listAnnouncements(eventId) {
   return Announcement.find({ event: eventId }).sort({ createdAt: -1 });
 }
 
-module.exports = { createAnnouncement, listAnnouncements };
+// module.exports = { createAnnouncement, listAnnouncements };
