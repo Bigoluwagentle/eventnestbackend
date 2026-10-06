@@ -17,6 +17,7 @@ router.use('/:eventId/ticket-types', require('./ticketType.routes'));
 router.use('/:eventId/staff', require('./eventStaff.routes'));
 router.use('/:eventId/check-in', require('./checkIn.routes'));
 router.use('/:eventId/sessions', require('./session.routes'));
+router.use('/:eventId/announcements', require('./announcement.routes'));
 
 router.get('/:eventId', controller.getEvent);
 router.patch('/:eventId', requireOrgRole('owner', 'admin', 'manager'), validate(updateEventSchema), controller.updateEvent);
