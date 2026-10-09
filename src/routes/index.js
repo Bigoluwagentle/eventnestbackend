@@ -19,4 +19,4 @@ router.use('/registrations', require('./registration.routes'));
 router.use('/bookmarks', require('./bookmark.routes'));
 router.use('/notifications', require('./notification.routes'));
 
-// module.exports = router;
+module.exports = router;

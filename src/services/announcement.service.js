@@ -36,7 +36,6 @@ async function createAnnouncement(event, organizationId, userId, { title, messag
         createdAt: announcement.createdAt,
       });
   } catch (err) {
-    // socket layer not initialized (e.g. in a test environment) - announcement + notifications still succeeded
     logger.warn(`Could not emit live announcement: ${err.message}`);
   }
 
@@ -47,4 +46,4 @@ async function listAnnouncements(eventId) {
   return Announcement.find({ event: eventId }).sort({ createdAt: -1 });
 }
 
-// module.exports = { createAnnouncement, listAnnouncements };
+module.exports = { createAnnouncement, listAnnouncements };
