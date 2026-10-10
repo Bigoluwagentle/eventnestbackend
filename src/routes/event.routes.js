@@ -19,6 +19,7 @@ router.use('/:eventId/check-in', require('./checkIn.routes'));
 router.use('/:eventId/sessions', require('./session.routes'));
 router.use('/:eventId/announcements', require('./announcement.routes'));
 router.use('/:eventId/polls', require('./poll.routes'));
+router.use('/:eventId/questions', require('./question.routes'));
 
 router.get('/:eventId', controller.getEvent);
 router.patch('/:eventId', requireOrgRole('owner', 'admin', 'manager'), validate(updateEventSchema), controller.updateEvent);

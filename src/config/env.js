@@ -7,7 +7,15 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().default(5000),
   API_VERSION: z.string().default('v1'),
-  CLIENT_URL: z.string().url(),
+
+  // one or more allowed frontend origins, comma-separated
+  CLIENT_URL: z
+    .string()
+    .min(1, 'CLIENT_URL is required')
+    .refine(
+      (value) => value.split(',').every((u) => z.string().url().safeParse(u.trim()).success),
+      'CLIENT_URL must be one or more valid URLs, comma-separated'
+    ),
 
   MONGO_URI: z.string().min(1, 'MONGO_URI is required'),
 
@@ -35,4 +43,8 @@ if (!parsed.success) {
   process.exit(1);
 }
 
-module.exports = parsed.data;
+module.exports = {
+  ...parsed.data,
+  // normalized list used by CORS and Socket.IO (trimmed, no trailing slash)
+  CLIENT_URLS: parsed.data.CLIENT_URL.split(',').map((u) => u.trim().replace(/\/$/, '')),
+};
