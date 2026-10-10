@@ -6,18 +6,27 @@ function requestMeta(req) {
   return { userAgent: req.headers['user-agent'], ip: req.ip };
 }
 
+// Same attributes for setting and clearing - browsers only clear a cookie
+// when path/secure/sameSite match the one that was set.
+function refreshCookieOptions() {
+  return {
+    httpOnly: true, // not readable by JavaScript - protects against XSS token theft
+    secure: env.COOKIE_SECURE,
+    // cross-site frontend (Vercel) -> API (Render) needs SameSite=None, which requires Secure
+    sameSite: env.COOKIE_SECURE ? 'none' : 'lax',
+    path: '/api/v1/auth',
+  };
+}
+
 function setRefreshCookie(res, refreshToken) {
   res.cookie('refreshToken', refreshToken, {
-    httpOnly: true,
-    secure: env.COOKIE_SECURE,
-    sameSite: 'lax',
+    ...refreshCookieOptions(),
     maxAge: authService.REFRESH_COOKIE_MAX_AGE_MS,
-    path: '/api/v1/auth',
   });
 }
 
 function clearRefreshCookie(res) {
-  res.clearCookie('refreshToken', { path: '/api/v1/auth' });
+  res.clearCookie('refreshToken', refreshCookieOptions());
 }
 
 const signup = asyncHandler(async (req, res) => {
