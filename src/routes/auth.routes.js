@@ -3,6 +3,7 @@ const rateLimit = require('express-rate-limit');
 
 const validate = require('../middlewares/validate');
 const { protect } = require('../middlewares/auth');
+const { requireCsrfHeader } = require('../middlewares/csrf');
 const authController = require('../controllers/auth.controller');
 const {
   signupSchema,
@@ -23,8 +24,8 @@ const authLimiter = rateLimit({
 
 router.post('/signup', validate(signupSchema), authController.signup);
 router.post('/login', authLimiter, validate(loginSchema), authController.login);
-router.post('/refresh', authController.refresh);
-router.post('/logout', authController.logout);
+router.post('/refresh', requireCsrfHeader, authController.refresh);
+router.post('/logout', requireCsrfHeader, authController.logout);
 router.post('/forgot-password', authLimiter, validate(forgotPasswordSchema), authController.forgotPassword);
 router.post('/reset-password', authLimiter, validate(resetPasswordSchema), authController.resetPassword);
 router.get('/verify-email/:token', authController.verifyEmail);

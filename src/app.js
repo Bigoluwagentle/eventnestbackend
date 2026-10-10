@@ -21,22 +21,29 @@ app.set('trust proxy', 1);
 app.use(helmet());
 app.use(
   cors({
-    origin: env.CLIENT_URL,
-    credentials: true, // allow cookies (refresh token) to be sent
+    origin(origin, callback) {
+      // No Origin header = non-browser client (Postman, curl, health checks). CORS only
+      // protects browsers, so these are allowed; auth still protects every private route.
+      if (!origin || env.CLIENT_URLS.includes(origin)) return callback(null, true);
+      return callback(null, false);
+    },
+    credentials: true, // allow the refresh-token cookie to be sent
   })
 );
 app.use(mongoSanitize()); // strips $ and . from req.body/query/params to block NoSQL injection
 
 // ---- Body parsing ----
-app.use(express.json({ limit: '10kb' })); // small limit - large payloads (images) go via signed upload URLs, not JSON
+app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use(cookieParser());
 
 // ---- Logging ----
 if (env.NODE_ENV !== 'test') {
-  app.use(morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev', {
-    stream: { write: (msg) => logger.info(msg.trim()) },
-  }));
+  app.use(
+    morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev', {
+      stream: { write: (msg) => logger.info(msg.trim()) },
+    })
+  );
 }
 
 // ---- Rate limiting (applied to all /api routes) ----
