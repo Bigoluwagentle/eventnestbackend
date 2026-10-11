@@ -96,7 +96,7 @@ async function listPublicEvents({ page = 1, limit = 12, category, eventType, cit
   const skip = (page - 1) * limit;
 
   const [events, total] = await Promise.all([
-    Event.find(filter).sort(sortOption).skip(skip).limit(limit).populate('organization', 'name slug logo'),
+    Event.find(filter).select('-virtualLink -createdBy').sort(sortOption).skip(skip).limit(limit).populate('organization', 'name slug logo'),
     Event.countDocuments(filter),
   ]);
 
@@ -113,7 +113,7 @@ async function getPublicEventBySlug(orgSlug, eventSlug) {
     slug: eventSlug,
     visibility: { $in: ['public', 'unlisted'] },
     status: { $nin: ['draft', 'cancelled'] },
-  }).populate('organization', 'name slug logo');
+  }).select('-virtualLink -createdBy').populate('organization', 'name slug logo');
 
   if (!event) throw new AppError('Event not found', 404);
   return event;
