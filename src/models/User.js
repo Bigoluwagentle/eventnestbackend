@@ -28,14 +28,12 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: ['super_admin', 'organizer', 'attendee'],
       default: 'attendee',
-      // Note: "organizer" here just means "can create an organization" —
-      // event-level and org-level permissions are handled separately via
-      // OrganizationMember roles, not this global field. Staff permissions
-      // are also handled per-event, not globally.
+      // Global role only. Organization and event permissions are handled via
+      // OrganizationMember and EventStaff, not this field.
     },
     avatar: {
       url: { type: String, default: null },
-      publicId: { type: String, default: null }, // for Cloudinary deletion
+      publicId: { type: String, default: null },
     },
     bio: { type: String, maxlength: 500, default: '' },
     phone: { type: String, default: null },
@@ -46,6 +44,14 @@ const userSchema = new mongoose.Schema(
     },
     interests: [{ type: String }],
     skills: [{ type: String }],
+
+    // what OTHER users can see on your public profile (email/phone hidden by default)
+    privacy: {
+      showEmail: { type: Boolean, default: false },
+      showPhone: { type: Boolean, default: false },
+      showSocialLinks: { type: Boolean, default: true },
+      showInterestsAndSkills: { type: Boolean, default: true },
+    },
 
     isEmailVerified: { type: Boolean, default: false },
     emailVerificationToken: { type: String, select: false },
@@ -60,15 +66,13 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-
 // ---- Hash password before save ----
 userSchema.pre('save', async function hashPassword(next) {
   if (!this.isModified('password')) return next();
 
   this.password = await bcrypt.hash(this.password, 12);
 
-  // if this is a password change (not initial creation), record when,
-  // so we can invalidate tokens issued before this change
+  // a password change (not initial creation): record when, so older tokens can be invalidated
   if (!this.isNew) {
     this.passwordChangedAt = Date.now() - 1000; // -1s to avoid JWT timing edge case
   }
@@ -95,6 +99,7 @@ userSchema.methods.toJSON = function toSafeJSON() {
   delete obj.emailVerificationExpires;
   delete obj.passwordResetToken;
   delete obj.passwordResetExpires;
+  delete obj.passwordChangedAt;
   delete obj.__v;
   return obj;
 };
