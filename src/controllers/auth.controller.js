@@ -86,4 +86,5 @@ module.exports = {
   resetPassword,
   verifyEmail,
   getMe,
+  clearRefreshCookie,
 };
