@@ -23,7 +23,7 @@ const protect = asyncHandler(async (req, res, next) => {
     return next(new AppError('Invalid or expired session. Please log in again.', 401));
   }
 
-  const user = await User.findById(decoded.sub);
+  const user = await User.findById(decoded.sub).select('+passwordChangedAt');
   if (!user) {
     return next(new AppError('The user belonging to this token no longer exists.', 401));
   }
