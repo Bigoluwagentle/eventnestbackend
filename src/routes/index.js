@@ -19,5 +19,6 @@ router.use('/registrations', require('./registration.routes'));
 router.use('/bookmarks', require('./bookmark.routes'));
 router.use('/notifications', require('./notification.routes'));
 router.use('/users', require('./user.routes'));
+router.use('/uploads', require('./upload.routes'));
 
 module.exports = router;

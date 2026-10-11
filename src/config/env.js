@@ -26,6 +26,11 @@ const envSchema = z.object({
 
   TICKET_TOKEN_SECRET: z.string().min(32, 'TICKET_TOKEN_SECRET must be at least 32 characters'),
 
+  // Cloudinary image uploads (optional: upload endpoints return 503 until all three are set)
+  CLOUDINARY_CLOUD_NAME: z.string().optional(),
+  CLOUDINARY_API_KEY: z.string().optional(),
+  CLOUDINARY_API_SECRET: z.string().optional(),
+
   COOKIE_SECURE: z
     .string()
     .default('false')
