@@ -57,9 +57,7 @@ const updateEventSchema = z.object({
     capacity: z.number().int().positive().optional().nullable(),
     visibility: z.enum(['public', 'unlisted', 'private']).optional(),
     registrationDeadline: z.coerce.date().optional().nullable(),
-    banner: z
-      .object({ url: z.string().url(), publicId: z.string() })
-      .optional(),
+    
   }),
 });
 

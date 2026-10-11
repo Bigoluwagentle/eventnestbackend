@@ -31,7 +31,7 @@ const updateSpeakerSchema = z.object({
         website: z.string().url().optional().nullable(),
       })
       .optional(),
-    photo: z.object({ url: z.string().url(), publicId: z.string() }).optional(),
+    
   }),
 });
 

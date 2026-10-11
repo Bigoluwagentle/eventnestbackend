@@ -1,14 +1,16 @@
 const express = require('express');
 const validate = require('../middlewares/validate');
 const { requireOrgRole } = require('../middlewares/tenant');
+const { requireAnyEventAccess } = require('../middlewares/eventAccess');
 const controller = require('../controllers/ticketType.controller');
 const { createTicketTypeSchema, updateTicketTypeSchema } = require('../validators/ticketType.validator');
 
-// mounted under /organizations/:orgId/events/:eventId/ticket-types, mergeParams to read orgId + eventId
+// mounted under /organizations/:orgId/events/:eventId/ticket-types
 const router = express.Router({ mergeParams: true });
 
 router.post('/', requireOrgRole('owner', 'admin', 'manager'), validate(createTicketTypeSchema), controller.createTicketType);
-router.get('/', controller.listTicketTypes);
+// management view (includes inactive types for org members); attendees use /events/:orgSlug/:eventSlug/ticket-types
+router.get('/', requireAnyEventAccess, controller.listTicketTypes);
 
 router.use('/:ticketTypeId', controller.loadTicketType);
 
