@@ -17,6 +17,9 @@ const app = express();
 // Trust Render's reverse proxy so req.ip / secure cookies behave correctly
 app.set('trust proxy', 1);
 
+// API docs get their own relaxed helmet config, so mount them before the global helmet
+app.use('/api/docs', require('./docs'));
+
 // ---- Security middleware ----
 app.use(helmet());
 app.use(
