@@ -3,7 +3,12 @@ const User = require('../models/User');
 const RefreshToken = require('../models/RefreshToken');
 const AppError = require('../utils/AppError');
 const logger = require('../config/logger');
+const emailService = require('./email.service');
 const { signAccessToken, signRefreshToken, verifyRefreshToken } = require('../utils/tokens');
+
+const VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const RESET_TTL_MS = 15 * 60 * 1000; // 15 minutes - short-lived, sensitive
+const EMAIL_COOLDOWN_MS = 60 * 1000; // at most one verification / reset email per minute per account
 
 function hashToken(token) {
   return crypto.createHash('sha256').update(token).digest('hex');
@@ -11,6 +16,13 @@ function hashToken(token) {
 
 function generateRawToken() {
   return crypto.randomBytes(32).toString('hex');
+}
+
+// A token was issued within the cooldown if (expiry - lifetime) is less than a minute ago.
+// This reuses the expiry fields we already store, so no extra database field is needed.
+function issuedRecently(expiresAt, ttlMs) {
+  if (!expiresAt) return false;
+  return new Date(expiresAt).getTime() - ttlMs > Date.now() - EMAIL_COOLDOWN_MS;
 }
 
 /**
@@ -35,6 +47,17 @@ async function issueTokenPair(user, meta = {}) {
   return { accessToken, refreshToken };
 }
 
+// Stores a fresh verification token (hashed) and emails the raw one.
+// The email is fire-and-forget: it never throws and never delays the response.
+async function issueEmailVerification(user) {
+  const rawToken = generateRawToken();
+  user.emailVerificationToken = hashToken(rawToken);
+  user.emailVerificationExpires = Date.now() + VERIFICATION_TTL_MS;
+  await user.save({ validateBeforeSave: false });
+
+  emailService.sendVerificationEmail(user, rawToken);
+}
+
 async function signup({ name, email, password }, meta) {
   const existing = await User.findOne({ email });
   if (existing) {
@@ -42,17 +65,23 @@ async function signup({ name, email, password }, meta) {
   }
 
   const user = await User.create({ name, email, password });
-
-  const verificationToken = generateRawToken();
-  user.emailVerificationToken = hashToken(verificationToken);
-  user.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000; // 24h
-  await user.save({ validateBeforeSave: false });
-
-  // TODO: replace with real email send once the email provider is wired up
-  logger.info(`[DEV] Email verification token for ${email}: ${verificationToken}`);
+  await issueEmailVerification(user);
 
   const tokens = await issueTokenPair(user, meta);
   return { user, ...tokens };
+}
+
+async function resendVerification(currentUser) {
+  const user = await User.findById(currentUser._id).select('+emailVerificationToken +emailVerificationExpires');
+
+  if (user.isEmailVerified) {
+    throw new AppError('Your email is already verified', 400);
+  }
+  if (issuedRecently(user.emailVerificationExpires, VERIFICATION_TTL_MS)) {
+    throw new AppError('A verification email was just sent. Please wait a minute before requesting another.', 429);
+  }
+
+  await issueEmailVerification(user);
 }
 
 async function login({ email, password }, meta) {
@@ -126,16 +155,20 @@ async function logout(rawRefreshToken) {
 }
 
 async function forgotPassword(email) {
-  const user = await User.findOne({ email });
-  if (!user) return; // don't reveal whether the email exists
+  const user = await User.findOne({ email }).select('+passwordResetExpires');
+
+  // never reveal whether the email exists: every branch below answers the same way
+  if (!user || !user.isActive) return;
+
+  // a repeat request within a minute is ignored; the earlier email's link is still valid
+  if (issuedRecently(user.passwordResetExpires, RESET_TTL_MS)) return;
 
   const resetToken = generateRawToken();
   user.passwordResetToken = hashToken(resetToken);
-  user.passwordResetExpires = Date.now() + 15 * 60 * 1000; // 15 minutes
+  user.passwordResetExpires = Date.now() + RESET_TTL_MS;
   await user.save({ validateBeforeSave: false });
 
-  // TODO: replace with real email send
-  logger.info(`[DEV] Password reset token for ${email}: ${resetToken}`);
+  emailService.sendPasswordResetEmail(user, resetToken, RESET_TTL_MS / 60000);
 }
 
 async function resetPassword(rawToken, newPassword) {
@@ -156,6 +189,9 @@ async function resetPassword(rawToken, newPassword) {
   await user.save();
 
   await RefreshToken.updateMany({ user: user._id, revokedAt: null }, { $set: { revokedAt: new Date() } });
+
+  // security notice: if someone else did this, the real owner finds out
+  emailService.sendPasswordChangedEmail(user);
 }
 
 async function verifyEmail(rawToken) {
@@ -188,5 +224,6 @@ module.exports = {
   forgotPassword,
   resetPassword,
   verifyEmail,
+  resendVerification,
   REFRESH_COOKIE_MAX_AGE_MS,
 };
