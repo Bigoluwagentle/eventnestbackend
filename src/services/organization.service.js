@@ -3,7 +3,8 @@ const Organization = require('../models/Organization');
 const OrganizationMember = require('../models/OrganizationMember');
 const Invitation = require('../models/Invitation');
 const AppError = require('../utils/AppError');
-const logger = require('../config/logger');
+const User = require('../models/User');
+const emailService = require('./email.service');
 const { generateUniqueSlug } = require('../utils/slugify');
 
 function hashToken(token) {
@@ -53,11 +54,9 @@ async function updateOrganization(organization, updates) {
 }
 
 async function inviteMember(organization, invitedByUserId, email, role) {
-  const existingMember = await OrganizationMember.findOne({ organization: organization._id }).populate({
-    path: 'user',
-    match: { email },
-  });
-  if (existingMember?.user) {
+  // already a member? look the person up by email, then check membership for that user
+  const invitee = await User.findOne({ email }).select('_id');
+  if (invitee && (await OrganizationMember.exists({ organization: organization._id, user: invitee._id }))) {
     throw new AppError('This user is already a member of the organization', 409);
   }
 
@@ -77,8 +76,14 @@ async function inviteMember(organization, invitedByUserId, email, role) {
     { upsert: true, new: true, setDefaultsOnInsert: true }
   );
 
-  // TODO: replace with real email once email provider is wired up
-  logger.info(`[DEV] Invitation token for ${email} to join "${organization.name}": ${rawToken}`);
+  const inviter = await User.findById(invitedByUserId).select('name');
+  emailService.sendOrganizationInvitation({
+    to: email,
+    inviterName: inviter ? inviter.name : 'A teammate',
+    organizationName: organization.name,
+    role,
+    token: rawToken,
+  });
 
   return invitation;
 }
