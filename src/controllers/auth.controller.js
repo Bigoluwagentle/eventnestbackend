@@ -77,6 +77,11 @@ const getMe = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, data: { user: req.user } });
 });
 
+const resendVerification = asyncHandler(async (req, res) => {
+  await authService.resendVerification(req.user);
+  res.status(200).json({ success: true, message: 'Verification email sent. Check your inbox.' });
+});
+
 module.exports = {
   signup,
   login,
@@ -87,4 +92,5 @@ module.exports = {
   verifyEmail,
   getMe,
   clearRefreshCookie,
+  resendVerification,
 };
