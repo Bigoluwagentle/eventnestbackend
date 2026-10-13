@@ -6,6 +6,7 @@ const AppError = require('../utils/AppError');
 const PROFILE_FIELDS = ['name', 'bio', 'phone', 'interests', 'skills'];
 const SOCIAL_FIELDS = ['twitter', 'linkedin', 'website'];
 const PRIVACY_FIELDS = ['showEmail', 'showPhone', 'showSocialLinks', 'showInterestsAndSkills'];
+const emailService = require('./email.service');
 
 async function updateProfile(user, updates) {
   // explicit whitelist: nothing else (role, email, isActive...) can be changed through this path
@@ -40,6 +41,8 @@ async function changePassword(user, currentPassword, newPassword) {
 
   fullUser.password = newPassword; // hashed by the pre-save hook, which also records passwordChangedAt
   await fullUser.save();
+
+  emailService.sendPasswordChangedEmail(fullUser);
 
   // sign out everywhere: an attacker holding a stolen session loses it too
   await RefreshToken.updateMany({ user: fullUser._id, revokedAt: null }, { $set: { revokedAt: new Date() } });
