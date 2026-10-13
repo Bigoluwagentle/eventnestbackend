@@ -31,6 +31,10 @@ const envSchema = z.object({
   CLOUDINARY_API_KEY: z.string().optional(),
   CLOUDINARY_API_SECRET: z.string().optional(),
 
+  // Email via Resend (optional: without a key, emails are printed to the console in development)
+  RESEND_API_KEY: z.string().optional(),
+  EMAIL_FROM: z.string().optional(),
+
   COOKIE_SECURE: z
     .string()
     .default('false')
