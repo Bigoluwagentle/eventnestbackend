@@ -5,6 +5,9 @@ const Registration = require('../models/Registration');
 const Ticket = require('../models/Ticket');
 const AppError = require('../utils/AppError');
 const { generateTicketToken } = require('../utils/ticketToken');
+const logger = require('../config/logger');
+const notificationService = require('./notification.service');
+const emailService = require('./email.service');
 
 function generateTicketNumber() {
   // human-friendly display reference only - NOT used for security/validation
@@ -101,6 +104,20 @@ async function registerForEvent(event, ticketType, user) {
     });
   } finally {
     session.endSession();
+  }
+
+    if (ticket) {
+    // confirmation: in-app notification + email. Neither can fail the registration.
+    notificationService
+      .createNotification(user._id, {
+        type: 'registration_confirmed',
+        title: 'Registration confirmed',
+        message: `You're registered for ${event.name}.`,
+        data: { eventId: event._id.toString(), registrationId: registration._id.toString() },
+      })
+      .catch((err) => logger.warn(`Could not create registration notification: ${err.message}`));
+
+    emailService.sendRegistrationConfirmation({ user, event, ticketType, ticket, registration });
   }
 
   return { registration, ticket, qrToken };
