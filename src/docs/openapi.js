@@ -344,9 +344,9 @@ const paths = {
   '/auth/signup': {
     post: op({
       tag: 'Auth', summary: 'Create an account', auth: false,
-      description: `Signs the user in immediately: the access token is in the body and the refresh token is set as an httpOnly cookie. Password: ${pwRule}`,
+      description: `Signs the user in immediately: the access token is in the body and the ...refresh token is set as an httpOnly cookie. A verification email is sent. Rate limited (20 per hour per IP). Password: ${pwRule}`,
       requestBody: body(obj({ name: str({ minLength: 2, maxLength: 100 }), email, password: str({ format: 'password' }) }, ['name', 'email', 'password'])),
-      status: 201, response: ok('Account created', authData), errors: [400, 409],
+      status: 201, response: ok('Account created', authData), errors: [400, 409, 429],
     }),
   },
   '/auth/login': {
@@ -376,7 +376,7 @@ const paths = {
   '/auth/forgot-password': {
     post: op({
       tag: 'Auth', summary: 'Request a password reset', auth: false,
-      description: 'Always answers the same way, whether or not the email exists. Rate limited. Email delivery is not wired up yet: the reset token is only logged on the server.',
+      description: 'Always answers the same way, whether or not the email exists. Rate limited; a repeat request within a minute of the last one is ignored. The reset link is emailed and is valid for 15 minutes.',
       requestBody: body(obj({ email }, ['email'])),
       response: ok('Request accepted'), errors: [400, 429],
     }),
@@ -394,6 +394,13 @@ const paths = {
       tag: 'Auth', summary: 'Verify an email address', auth: false,
       params: [{ name: 'token', in: 'path', required: true, schema: str() }],
       response: ok('Email verified'), errors: [400],
+    }),
+  },
+  '/auth/resend-verification': {
+    post: op({
+      tag: 'Auth', summary: 'Send the verification email again',
+      description: 'For the logged-in user. Rate limited (5 per hour), and only one email per minute per account. 400 if the email is already verified.',
+      response: ok('Verification email sent'), errors: [400, 429],
     }),
   },
   '/auth/me': {
@@ -496,7 +503,7 @@ const paths = {
   },
   '/organizations/{orgId}/invite': {
     post: op({
-      tag: 'Organizations', summary: 'Invite someone to the organization', description: `${ADMIN} The invite token is only logged on the server until email is wired up.`,
+      tag: 'Organizations', summary: 'Invite someone to the organization',       description: `${ADMIN} The invitation is sent by email and is valid for 7 days.`,
       params: [param('orgId')],
       requestBody: body(obj({ email, role: str({ enum: ['admin', 'manager'], default: 'manager' }) }, ['email'])),
       status: 201, response: ok('Invitation created'), errors: [400, 403, 404, 409],
@@ -1026,7 +1033,7 @@ module.exports = {
       '',
       '**Real-time (Socket.IO).** Connect to the API origin with `auth: { token: <accessToken> }`, then emit `join:event` with an event id (acknowledgement `{ success }`). Events pushed to the room: `announcement:new`, `poll:opened`, `poll:updated`, `poll:closed`, `question:new`, `question:updated`.',
       '',
-      '**Not implemented yet:** payments (paid tickets stay `pending_payment`) and outbound email (tokens are logged on the server).',
+      '**Not implemented yet:** payments (paid tickets stay `pending_payment`) and scheduled emails such as event reminders.',
     ].join('\n'),
   },
   servers: [{ url: '/api/v1', description: 'This server' }],
