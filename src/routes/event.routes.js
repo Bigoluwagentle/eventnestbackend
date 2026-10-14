@@ -23,6 +23,7 @@ router.use('/:eventId/sessions', require('./session.routes'));
 router.use('/:eventId/announcements', require('./announcement.routes'));
 router.use('/:eventId/polls', require('./poll.routes'));
 router.use('/:eventId/questions', require('./question.routes'));
+router.use('/:eventId/analytics', require('./eventAnalytics.routes'));
 
 // management view of an event (drafts and join link included): org members or event staff only
 router.get('/:eventId', requireAnyEventAccess, controller.getEvent);
