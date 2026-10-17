@@ -21,5 +21,6 @@ router.use('/notifications', require('./notification.routes'));
 router.use('/users', require('./user.routes'));
 router.use('/uploads', require('./upload.routes'));
 router.use('/admin', require('./admin.routes'));
+router.use('/certificates', require('./certificate.routes'));
 
 module.exports = router;

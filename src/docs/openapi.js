@@ -1,6 +1,6 @@
 // Hand-written OpenAPI 3.0 spec for the EventNest API.
 // Served by Swagger UI at /api/docs and as raw JSON at /api/docs/openapi.json.
-const analyticsDocs = require('./analytics.docs');
+const extensions = require('./extensions');
 
 const CATEGORIES = [
   'conference', 'tech', 'hackathon', 'meetup', 'workshop', 'concert',
@@ -1038,7 +1038,7 @@ module.exports = {
     ].join('\n'),
   },
   servers: [{ url: '/api/v1', description: 'This server' }],
-  tags: [...tagList, ...analyticsDocs.tags],
-  paths: { ...paths, ...analyticsDocs.paths },
-  components: { ...components, schemas: { ...components.schemas, ...analyticsDocs.schemas } },
+  tags: [...tagList, ...extensions.flatMap((e) => e.tags)],
+  paths: Object.assign({}, paths, ...extensions.map((e) => e.paths)),
+  components: { ...components, schemas: Object.assign({}, components.schemas, ...extensions.map((e) => e.schemas)) },
 };
