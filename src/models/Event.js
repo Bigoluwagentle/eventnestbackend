@@ -80,6 +80,10 @@ const eventSchema = new mongoose.Schema(
 
     registrationDeadline: { type: Date, default: null },
 
+    // who can see the post-event gallery: private = organization members only (the default),
+    // attendees = registered attendees, event staff and members, public = anyone who can see the event page
+    galleryAccess: { type: String, enum: ['private', 'attendees', 'public'], default: 'private' },
+
     status: {
       type: String,
       enum: ['draft', 'published', 'registration_closed', 'ongoing', 'completed', 'cancelled'],
