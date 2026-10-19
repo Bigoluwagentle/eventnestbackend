@@ -1,4 +1,5 @@
 const asyncHandler = require('../utils/asyncHandler');
+const AppError = require('../utils/AppError');
 const notificationService = require('../services/notification.service');
 
 const listMyNotifications = asyncHandler(async (req, res) => {
@@ -8,6 +9,8 @@ const listMyNotifications = asyncHandler(async (req, res) => {
 
 const markAsRead = asyncHandler(async (req, res) => {
   const notification = await notificationService.markAsRead(req.user._id, req.params.notificationId);
+  // someone else's notification looks exactly like a missing one
+  if (!notification) throw new AppError('Notification not found', 404);
   res.status(200).json({ success: true, data: { notification } });
 });
 
