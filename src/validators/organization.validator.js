@@ -1,10 +1,11 @@
 const { z } = require('zod');
+const { httpUrl } = require('./common');
 
 const createOrganizationSchema = z.object({
   body: z.object({
     name: z.string().trim().min(2).max(150),
     description: z.string().max(1000).optional(),
-    website: z.string().url().optional(),
+    website: httpUrl().optional(),
   }),
 });
 
@@ -13,13 +14,13 @@ const updateOrganizationSchema = z.object({
   body: z.object({
     name: z.string().trim().min(2).max(150).optional(),
     description: z.string().max(1000).optional(),
-    website: z.string().url().optional(),
+    website: httpUrl().optional(),
     socialLinks: z
       .object({
-        twitter: z.string().url().optional().nullable(),
-        linkedin: z.string().url().optional().nullable(),
-        instagram: z.string().url().optional().nullable(),
-        facebook: z.string().url().optional().nullable(),
+        twitter: httpUrl().optional().nullable(),
+        linkedin: httpUrl().optional().nullable(),
+        instagram: httpUrl().optional().nullable(),
+        facebook: httpUrl().optional().nullable(),
       })
       .optional(),
   }),
