@@ -1,4 +1,14 @@
 const { z } = require('zod');
+const { httpUrl } = require('./common');
+
+const socialLinks = () =>
+  z
+    .object({
+      twitter: httpUrl().optional().nullable(),
+      linkedin: httpUrl().optional().nullable(),
+      website: httpUrl().optional().nullable(),
+    })
+    .optional();
 
 const createSpeakerSchema = z.object({
   params: z.object({ orgId: z.string().min(1) }),
@@ -7,13 +17,7 @@ const createSpeakerSchema = z.object({
     bio: z.string().max(2000).optional(),
     company: z.string().max(150).optional(),
     jobTitle: z.string().max(150).optional(),
-    socialLinks: z
-      .object({
-        twitter: z.string().url().optional().nullable(),
-        linkedin: z.string().url().optional().nullable(),
-        website: z.string().url().optional().nullable(),
-      })
-      .optional(),
+    socialLinks: socialLinks(),
   }),
 });
 
@@ -24,14 +28,7 @@ const updateSpeakerSchema = z.object({
     bio: z.string().max(2000).optional(),
     company: z.string().max(150).optional(),
     jobTitle: z.string().max(150).optional(),
-    socialLinks: z
-      .object({
-        twitter: z.string().url().optional().nullable(),
-        linkedin: z.string().url().optional().nullable(),
-        website: z.string().url().optional().nullable(),
-      })
-      .optional(),
-    
+    socialLinks: socialLinks(),
   }),
 });
 
