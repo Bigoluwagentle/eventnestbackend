@@ -4,7 +4,7 @@ const { attachMembershipIfExists, requireOrgRole } = require('../middlewares/ten
 const { requireAnyEventAccess } = require('../middlewares/eventAccess');
 const { loadEvent } = require('../middlewares/event');
 const controller = require('../controllers/event.controller');
-const { createEventSchema, updateEventSchema, updateStatusSchema } = require('../validators/event.validator');
+const { createEventSchema, updateEventSchema, updateStatusSchema, listOrgEventsSchema } = require('../validators/event.validator');
 
 // mounted under /organizations/:orgId/events
 const router = express.Router({ mergeParams: true });
@@ -13,7 +13,7 @@ router.use(attachMembershipIfExists); // req.membership = doc or null, never blo
 
 router.post('/', requireOrgRole('owner', 'admin', 'manager'), validate(createEventSchema), controller.createEvent);
 // the full event list includes drafts, so it is for organization members only
-router.get('/', requireOrgRole('owner', 'admin', 'manager'), controller.listOrgEvents);
+router.get('/', requireOrgRole('owner', 'admin', 'manager'), validate(listOrgEventsSchema), controller.listOrgEvents);
 
 router.use('/:eventId', loadEvent);
 router.use('/:eventId/ticket-types', require('./ticketType.routes'));

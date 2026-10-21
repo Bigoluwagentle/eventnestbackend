@@ -8,6 +8,7 @@ const { generateTicketToken } = require('../utils/ticketToken');
 const logger = require('../config/logger');
 const notificationService = require('./notification.service');
 const emailService = require('./email.service');
+const { assertEventAllowsRegistration } = require('../utils/registrationRules');
 
 function generateTicketNumber() {
   // human-friendly display reference only - NOT used for security/validation
@@ -18,6 +19,7 @@ async function registerForEvent(event, ticketType, user) {
   if (event.status !== 'published') {
     throw new AppError('This event is not open for registration', 400);
   }
+  await assertEventAllowsRegistration(event, user);
   if (event.registrationDeadline && event.registrationDeadline < new Date()) {
     throw new AppError('Registration deadline has passed', 400);
   }

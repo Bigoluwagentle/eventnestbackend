@@ -942,7 +942,7 @@ const paths = {
       params: [
         query('page', { type: 'integer', default: 1 }),
         query('limit', { type: 'integer', default: 20 }),
-        query('unreadOnly', str({ enum: ['true'] }), 'Pass true to return only unread notifications; omit it for all.'),
+        query('unreadOnly', str({ enum: ['true', 'false'], default: 'false' }), 'Pass true to return only unread notifications.'),
       ],
       response: ok('Notifications', {
         notifications: arrayOf(ref('Notification')), unreadCount: { type: 'integer' }, pagination: ref('Pagination'),

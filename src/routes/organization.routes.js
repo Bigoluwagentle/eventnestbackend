@@ -3,6 +3,7 @@ const validate = require('../middlewares/validate');
 const { protect } = require('../middlewares/auth');
 const { loadOrganization, requireMembership, requireOrgRole } = require('../middlewares/tenant');
 const controller = require('../controllers/organization.controller');
+const { requireVerifiedEmail } = require('../middlewares/verifiedEmail');
 const {
   createOrganizationSchema,
   updateOrganizationSchema,
@@ -15,7 +16,7 @@ const router = express.Router();
 
 router.use(protect);
 
-router.post('/', validate(createOrganizationSchema), controller.createOrganization);
+router.post('/', requireVerifiedEmail, validate(createOrganizationSchema), controller.createOrganization);
 router.get('/me', controller.listMyOrganizations);
 router.get('/slug/:slug', controller.getOrganizationBySlug);
 router.post('/accept-invite', validate(acceptInvitationSchema), controller.acceptInvitation);

@@ -2,6 +2,8 @@ const Event = require('../models/Event');
 const Session = require('../models/Session');
 const AppError = require('../utils/AppError');
 const { generateUniqueSlug } = require('../utils/slugify');
+const { escapeRegex } = require('../utils/escapeRegex');
+const { assertInventoryFitsCapacity } = require('./ticketType.service');
 
 const VALID_TRANSITIONS = {
   draft: ['published', 'cancelled'],
@@ -60,6 +62,15 @@ async function updateEvent(event, updates) {
   if (['completed', 'cancelled'].includes(event.status)) {
     throw new AppError(`Cannot edit an event that is ${event.status}`, 400);
   }
+
+  // check the dates as they will be AFTER the update (a change to just one of them can still be wrong)
+  const start = updates.startDate || event.startDate;
+  const end = updates.endDate || event.endDate;
+  if (end < start) throw new AppError('End date must be after start date', 400);
+
+  // lowering the capacity below the tickets already on offer would leave the event over-sold on paper
+  if (updates.capacity) await assertInventoryFitsCapacity(event._id, updates.capacity);
+
   Object.assign(event, updates);
   await event.save();
   return event;
@@ -89,8 +100,8 @@ async function listPublicEvents({ page = 1, limit = 12, category, eventType, cit
   const filter = { status: 'published', visibility: 'public', startDate: { $gte: new Date() } };
   if (category) filter.category = category;
   if (eventType) filter.eventType = eventType;
-  if (city) filter['location.city'] = new RegExp(city, 'i');
-  if (search) filter.name = new RegExp(search, 'i');
+  if (city) filter['location.city'] = new RegExp(escapeRegex(city), 'i');
+  if (search) filter.name = new RegExp(escapeRegex(search), 'i');
 
   const sortOption = sort === 'newest' ? { createdAt: -1 } : { startDate: 1 };
   const skip = (page - 1) * limit;

@@ -42,6 +42,12 @@ const envSchema = z.object({
 
   RATE_LIMIT_WINDOW_MS: z.coerce.number().default(900000),
   RATE_LIMIT_MAX: z.coerce.number().default(200),
+
+  // set to true once real email delivery works: then creating an organization or registering needs a verified email
+  REQUIRE_VERIFIED_EMAIL: z
+    .string()
+    .default('false')
+    .transform((val) => val === 'true'),
 });
 
 const parsed = envSchema.safeParse(process.env);
