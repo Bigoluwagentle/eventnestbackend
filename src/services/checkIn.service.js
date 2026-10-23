@@ -3,8 +3,8 @@ const AppError = require('../utils/AppError');
 const { verifyTicketToken } = require('../utils/ticketToken');
 
 async function checkInTicket(event, ticketId, token, staffUserId) {
-  if (!verifyTicketToken(ticketId, token)) {
-    throw new AppError('Invalid ticket. This QR code could not be verified.', 400);
+  if (event.status === 'cancelled') {
+    throw new AppError('This event has been cancelled.', 400);
   }
 
   const ticket = await Ticket.findOne({ _id: ticketId, event: event._id });

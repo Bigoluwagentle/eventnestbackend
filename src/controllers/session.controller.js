@@ -21,7 +21,7 @@ const loadSession = asyncHandler(async (req, res, next) => {
 });
 
 const updateSession = asyncHandler(async (req, res) => {
-  const session = await sessionService.updateSession(req.scheduleSession, req.organization._id, req.body);
+  const session = await sessionService.updateSession(req.event, req.scheduleSession, req.organization._id, req.body);
   res.status(200).json({ success: true, message: 'Session updated', data: { session } });
 });
 

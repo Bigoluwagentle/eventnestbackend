@@ -14,7 +14,7 @@ const listMyOrganizations = asyncHandler(async (req, res) => {
 });
 
 const getOrganizationBySlug = asyncHandler(async (req, res) => {
-  const organization = await organizationService.getOrganizationBySlug(req.params.slug);
+  const organization = await organizationService.getOrganizationBySlug(req.params.slug, req.user._id);
   res.status(200).json({ success: true, data: { organization } });
 });
 

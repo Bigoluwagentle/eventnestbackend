@@ -4,12 +4,14 @@ const { protect } = require('../middlewares/auth');
 const { loadOrganization, requireMembership, requireOrgRole } = require('../middlewares/tenant');
 const controller = require('../controllers/organization.controller');
 const { requireVerifiedEmail } = require('../middlewares/verifiedEmail');
+const memberController = require('../controllers/member.controller');
 const {
   createOrganizationSchema,
   updateOrganizationSchema,
   inviteMemberSchema,
   acceptInvitationSchema,
   transferOwnershipSchema,
+  updateMemberRoleSchema,
 } = require('../validators/organization.validator');
 
 const router = express.Router();
@@ -28,6 +30,7 @@ router.patch('/:orgId', requireMembership, requireOrgRole('owner', 'admin'), val
 router.get('/:orgId/members', requireMembership, controller.listMembers);
 router.post('/:orgId/invite', requireMembership, requireOrgRole('owner', 'admin'), validate(inviteMemberSchema), controller.inviteMember);
 router.delete('/:orgId/members/:memberId', requireMembership, requireOrgRole('owner', 'admin'), controller.removeMember);
+router.patch('/:orgId/members/:memberId', requireMembership, requireOrgRole('owner'), validate(updateMemberRoleSchema), memberController.changeMemberRole);
 router.post('/:orgId/leave', requireMembership, controller.leaveOrganization);
 router.post(
   '/:orgId/transfer-ownership',

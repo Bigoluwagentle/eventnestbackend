@@ -15,6 +15,7 @@ const updateOrganizationSchema = z.object({
     name: z.string().trim().min(2).max(150).optional(),
     description: z.string().max(1000).optional(),
     website: httpUrl().optional(),
+    isPublic: z.boolean().optional(),
     socialLinks: z
       .object({
         twitter: httpUrl().optional().nullable(),

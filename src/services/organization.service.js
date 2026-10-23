@@ -41,14 +41,24 @@ async function listUserOrganizations(userId) {
     .map((m) => ({ organization: m.organization, role: m.role, joinedAt: m.joinedAt }));
 }
 
-async function getOrganizationBySlug(slug) {
+async function getOrganizationBySlug(slug, userId) {
   const organization = await Organization.findOne({ slug, status: 'active' });
   if (!organization) throw new AppError('Organization not found', 404);
+
+  // an organization that opted out of public listing is only visible to its own members
+  if (organization.settings && organization.settings.isPublic === false) {
+    const isMember = await OrganizationMember.exists({ organization: organization._id, user: userId });
+    if (!isMember) throw new AppError('Organization not found', 404);
+  }
+
   return organization;
 }
 
 async function updateOrganization(organization, updates) {
-  Object.assign(organization, updates);
+  // isPublic lives under `settings`, so it is mapped rather than assigned directly
+  const { isPublic, ...rest } = updates;
+  Object.assign(organization, rest);
+  if (isPublic !== undefined) organization.set('settings.isPublic', isPublic);
   await organization.save();
   return organization;
 }

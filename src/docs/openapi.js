@@ -1018,6 +1018,15 @@ const tagList = [
   ['Uploads', 'Direct-to-Cloudinary image uploads'],
 ].map(([name, description]) => ({ name, description }));
 
+// merges path objects method by method, so a docs file can add a method to a path the main spec already has
+const mergePaths = (...sources) =>
+  sources.reduce((merged, pathItems) => {
+    Object.entries(pathItems).forEach(([path, methods]) => {
+      merged[path] = { ...(merged[path] || {}), ...methods };
+    });
+    return merged;
+  }, {});
+
 module.exports = {
   openapi: '3.0.3',
   info: {
@@ -1032,13 +1041,13 @@ module.exports = {
       '',
       '**Tenant isolation.** Organization-scoped routes verify membership on the server for every request; the tenant is always taken from the URL and the caller\'s membership, never from the request body.',
       '',
-      '**Real-time (Socket.IO).** Connect to the API origin with `auth: { token: <accessToken> }`, then emit `join:event` with an event id (acknowledgement `{ success }`). Events pushed to the room: `announcement:new`, `poll:opened`, `poll:updated`, `poll:closed`, `question:new`, `question:updated`.',
+      '**Real-time (Socket.IO).** Connect to the API origin with `auth: { token: <accessToken> }`, then emit `join:event` with an event id (acknowledgement `{ success }`). Events pushed to the room: `announcement:new`, `poll:opened`, `poll:updated`, `poll:closed`, `question:new`, `question:updated`, `event:updated`, `event:cancelled`, `schedule:changed`.',
       '',
       '**Not implemented yet:** payments (paid tickets stay `pending_payment`) and scheduled emails such as event reminders.',
     ].join('\n'),
   },
   servers: [{ url: '/api/v1', description: 'This server' }],
   tags: [...tagList, ...extensions.flatMap((e) => e.tags)],
-  paths: Object.assign({}, paths, ...extensions.map((e) => e.paths)),
+  paths: mergePaths(paths, ...extensions.map((e) => e.paths)),
   components: { ...components, schemas: Object.assign({}, components.schemas, ...extensions.map((e) => e.schemas)) },
 };

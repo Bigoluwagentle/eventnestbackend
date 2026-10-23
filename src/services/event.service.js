@@ -4,6 +4,9 @@ const AppError = require('../utils/AppError');
 const { generateUniqueSlug } = require('../utils/slugify');
 const { escapeRegex } = require('../utils/escapeRegex');
 const { assertInventoryFitsCapacity } = require('./ticketType.service');
+const { deleteEventCascade } = require('./eventCleanup.service');
+const { notifyEventCancelled, notifyEventChanged } = require('./eventNotifier.service');
+const { undiscoverableOrganizationIds } = require('../utils/orgVisibility');
 
 const VALID_TRANSITIONS = {
   draft: ['published', 'cancelled'],
@@ -58,6 +61,26 @@ async function listOrgEvents(organizationId, { status, page = 1, limit = 20 }) {
   return { events, pagination: { page, limit, total, pages: Math.ceil(total / limit) } };
 }
 
+const placeOf = (event) =>
+  JSON.stringify([
+    (event.location && event.location.venueName) || null,
+    (event.location && event.location.address) || null,
+    (event.location && event.location.city) || null,
+    (event.location && event.location.country) || null,
+  ]);
+
+// the changes attendees need to hear about, as readable labels
+function attendeeFacingChanges(before, event) {
+  const changes = [];
+  if (before.start !== +event.startDate || before.end !== +event.endDate || before.timezone !== event.timezone) {
+    changes.push('date and time');
+  }
+  if (before.place !== placeOf(event)) changes.push('location');
+  if (before.eventType !== event.eventType) changes.push('format (in person / online)');
+  if (before.virtualLink !== (event.virtualLink || null)) changes.push('online joining link');
+  return changes;
+}
+
 async function updateEvent(event, updates) {
   if (['completed', 'cancelled'].includes(event.status)) {
     throw new AppError(`Cannot edit an event that is ${event.status}`, 400);
@@ -71,8 +94,33 @@ async function updateEvent(event, updates) {
   // lowering the capacity below the tickets already on offer would leave the event over-sold on paper
   if (updates.capacity) await assertInventoryFitsCapacity(event._id, updates.capacity);
 
-  Object.assign(event, updates);
+  const before = {
+    start: +event.startDate,
+    end: +event.endDate,
+    timezone: event.timezone,
+    place: placeOf(event),
+    eventType: event.eventType,
+    virtualLink: event.virtualLink || null,
+  };
+
+  // `location` is merged field by field: assigning it whole would wipe the parts that were not sent
+  const { location, ...rest } = updates;
+  Object.assign(event, rest);
+  if (location) {
+    const { coordinates, ...place } = location;
+    Object.entries(place).forEach(([key, value]) => event.set(`location.${key}`, value));
+    if (coordinates) {
+      Object.entries(coordinates).forEach(([key, value]) => event.set(`location.coordinates.${key}`, value));
+    }
+  }
   await event.save();
+
+  // a draft has no attendees; for everything else, tell them what changed
+  if (event.status !== 'draft') {
+    const changes = attendeeFacingChanges(before, event);
+    if (changes.length) await notifyEventChanged(event, changes);
+  }
+
   return event;
 }
 
@@ -86,6 +134,7 @@ async function updateEventStatus(event, newStatus) {
   }
   event.status = newStatus;
   await event.save();
+  if (newStatus === 'cancelled') await notifyEventCancelled(event);
   return event;
 }
 
@@ -93,7 +142,7 @@ async function deleteEvent(event) {
   if (event.status !== 'draft') {
     throw new AppError('Only draft events can be deleted. Cancel published events instead.', 400);
   }
-  await event.deleteOne();
+  await deleteEventCascade(event);
 }
 
 async function listPublicEvents({ page = 1, limit = 12, category, eventType, city, search, sort = 'upcoming' }) {
@@ -102,6 +151,10 @@ async function listPublicEvents({ page = 1, limit = 12, category, eventType, cit
   if (eventType) filter.eventType = eventType;
   if (city) filter['location.city'] = new RegExp(escapeRegex(city), 'i');
   if (search) filter.name = new RegExp(escapeRegex(search), 'i');
+
+
+  const hiddenOrganizations = await undiscoverableOrganizationIds();
+  if (hiddenOrganizations.length) filter.organization = { $nin: hiddenOrganizations };
 
   const sortOption = sort === 'newest' ? { createdAt: -1 } : { startDate: 1 };
   const skip = (page - 1) * limit;
