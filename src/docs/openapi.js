@@ -1046,8 +1046,8 @@ module.exports = {
       '**Not implemented yet:** payments (paid tickets stay `pending_payment`) and scheduled emails such as event reminders.',
     ].join('\n'),
   },
-  servers: [{ url: '/api/v1', description: 'This server' }],
-  tags: [...tagList, ...extensions.flatMap((e) => e.tags)],
-  paths: mergePaths(paths, ...extensions.map((e) => e.paths)),
+  // servers: [{ url: '/api/v1', description: 'This server' }],
+  // tags: [...tagList, ...extensions.flatMap((e) => e.tags)],
+  // paths: mergePaths(paths, ...extensions.map((e) => e.paths)),
   components: { ...components, schemas: Object.assign({}, components.schemas, ...extensions.map((e) => e.schemas)) },
 };
