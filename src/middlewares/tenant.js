@@ -3,6 +3,8 @@ const asyncHandler = require('../utils/asyncHandler');
 const Organization = require('../models/Organization');
 const OrganizationMember = require('../models/OrganizationMember');
 
+const READ_ONLY_METHODS = ['GET', 'HEAD', 'OPTIONS'];
+
 const loadOrganization = asyncHandler(async (req, res, next) => {
   const { orgId } = req.params;
   const organization = await Organization.findById(orgId);
@@ -11,8 +13,14 @@ const loadOrganization = asyncHandler(async (req, res, next) => {
     return next(new AppError('Organization not found', 404));
   }
 
+  // A suspended organization is read-only for its members: they can still look at their data,
+  // but nothing can be created, changed or deleted until the platform reinstates it.
+  if (organization.status === 'suspended' && !READ_ONLY_METHODS.includes(req.method)) {
+    return next(new AppError('This organization has been suspended by the platform. Contact support.', 403));
+  }
+
   req.organization = organization;
-  next();
+  return next();
 });
 
 /**
@@ -30,7 +38,7 @@ const requireMembership = asyncHandler(async (req, res, next) => {
   }
 
   req.membership = membership;
-  next();
+  return next();
 });
 
 /**
@@ -52,7 +60,7 @@ function requireOrgRole(...roles) {
     if (!req.membership || !roles.includes(req.membership.role)) {
       return next(new AppError('You do not have permission to perform this action in this organization', 403));
     }
-    next();
+    return next();
   };
 }
 
