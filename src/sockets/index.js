@@ -3,6 +3,7 @@ const env = require('../config/env');
 const logger = require('../config/logger');
 const { verifyAccessToken } = require('../utils/tokens');
 const { canAccessEvent } = require('../utils/eventParticipation');
+const User = require('../models/User');
 
 let io;
 
@@ -11,20 +12,29 @@ function initSocket(httpServer) {
     cors: { origin: env.CLIENT_URLS, credentials: true },
   });
 
-  io.use((socket, next) => {
+  io.use(async (socket, next) => {
     try {
       const token = socket.handshake.auth?.token;
       if (!token) return next(new Error('Authentication required'));
+
       const decoded = verifyAccessToken(token);
+
+      // the same account checks as the REST middleware: the account must still exist, be active,
+      // and the token must be newer than the last password change
+      const user = await User.findById(decoded.sub).select('isActive +passwordChangedAt');
+      if (!user || !user.isActive) return next(new Error('Account is not active'));
+      if (user.changedPasswordAfter(decoded.iat)) return next(new Error('Session expired. Please log in again.'));
+
       socket.userId = decoded.sub;
-      next();
+      return next();
     } catch (err) {
-      next(new Error('Invalid or expired token'));
+      return next(new Error('Invalid or expired token'));
     }
   });
 
   io.on('connection', (socket) => {
     logger.info(`Socket connected: user ${socket.userId}`);
+    socket.join(`user:${socket.userId}`); // lets an admin action close this person's sockets
 
     socket.on('join:event', async (eventId, callback) => {
       try {
@@ -33,9 +43,9 @@ function initSocket(httpServer) {
           return callback?.({ success: false, message: 'Not authorized for this event' });
         }
         socket.join(`event:${eventId}`);
-        callback?.({ success: true });
+        return callback?.({ success: true });
       } catch (err) {
-        callback?.({ success: false, message: 'Failed to join event room' });
+        return callback?.({ success: false, message: 'Failed to join event room' });
       }
     });
 
@@ -56,4 +66,13 @@ function getIO() {
   return io;
 }
 
-module.exports = { initSocket, getIO };
+// Closes every live connection of one user (used when an account is deactivated).
+function disconnectUser(userId) {
+  try {
+    getIO().in(`user:${userId}`).disconnectSockets(true);
+  } catch (err) {
+    logger.warn(`Could not close sockets for user ${userId}: ${err.message}`);
+  }
+}
+
+module.exports = { initSocket, getIO, disconnectUser };
