@@ -4,4 +4,5 @@ module.exports = [
   require('./certificates.docs'),
   require('./gallery.docs'),
   require('./lifecycle.docs'),
+  require('./admin.docs'),
 ];
