@@ -5,4 +5,5 @@ module.exports = [
   require('./gallery.docs'),
   require('./lifecycle.docs'),
   require('./admin.docs'),
+  require('./saved.docs'),
 ];
