@@ -24,5 +24,6 @@ router.use('/admin', require('./admin.routes'));
 router.use('/certificates', require('./certificate.routes'));
 router.use('/events', require('./publicGallery.routes'));
 router.use('/reports', require('./report.routes'));
+router.use('/saved-events', require('./savedEvent.routes'));
 
 module.exports = router;
