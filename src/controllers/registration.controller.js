@@ -6,6 +6,7 @@ const TicketType = require('../models/TicketType');
 const Registration = require('../models/Registration');
 const Ticket = require('../models/Ticket');
 const registrationService = require('../services/registration.service');
+const waitlistService = require('../services/waitlist.service');
 const { generateTicketToken } = require('../utils/ticketToken');
 
 async function buildTicketPayload(ticket) {
@@ -16,7 +17,7 @@ async function buildTicketPayload(ticket) {
 }
 
 const register = asyncHandler(async (req, res) => {
-  const { eventId, ticketTypeId } = req.body;
+  const { eventId, ticketTypeId, joinWaitlist } = req.body;
 
   const event = await Event.findById(eventId);
   if (!event) throw new AppError('Event not found', 404);
@@ -24,7 +25,16 @@ const register = asyncHandler(async (req, res) => {
   const ticketType = await TicketType.findOne({ _id: ticketTypeId, event: event._id });
   if (!ticketType) throw new AppError('Ticket type not found for this event', 404);
 
-  const { registration, ticket } = await registrationService.registerForEvent(event, ticketType, req.user);
+  const { registration, ticket, waitlistPosition } = await registrationService.registerForEvent(event, ticketType, req.user, { joinWaitlist });
+
+  // sold out, and the person asked to wait: no ticket yet, just a place in line
+  if (registration.status === 'waitlisted') {
+    return res.status(201).json({
+      success: true,
+      message: `You are on the waiting list (position ${waitlistPosition}). You will be registered automatically if a place opens up.`,
+      data: { registration, waitlistPosition },
+    });
+  }
 
   let qrCode = null;
   let token = null;
@@ -32,7 +42,7 @@ const register = asyncHandler(async (req, res) => {
     ({ qrCode, token } = await buildTicketPayload(ticket));
   }
 
-  res.status(201).json({
+  return res.status(201).json({
     success: true,
     message: ticket ? 'Registration confirmed and ticket issued' : 'Registration created, payment required',
     data: { registration, ticket, qrCode, token },
@@ -40,10 +50,7 @@ const register = asyncHandler(async (req, res) => {
 });
 
 const listMyRegistrations = asyncHandler(async (req, res) => {
-  const registrations = await Registration.find({ user: req.user._id })
-    .sort({ createdAt: -1 })
-    .populate('event', 'name slug startDate banner status')
-    .populate('ticketType', 'name price currency');
+  const registrations = await waitlistService.listMyRegistrations(req.user._id);
 
   res.status(200).json({ success: true, data: { registrations } });
 });
@@ -53,7 +60,14 @@ const getMyTicket = asyncHandler(async (req, res) => {
   if (!registration) throw new AppError('Registration not found', 404);
 
   const ticket = await Ticket.findOne({ registration: registration._id });
-  if (!ticket) throw new AppError('No ticket has been issued for this registration yet', 404);
+  if (!ticket) {
+    throw new AppError(
+      registration.status === 'waitlisted'
+        ? 'You are on the waiting list. A ticket is issued automatically if a place opens up.'
+        : 'No ticket has been issued for this registration yet',
+      404
+    );
+  }
 
   const { qrCode, token } = await buildTicketPayload(ticket);
 
