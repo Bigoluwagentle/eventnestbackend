@@ -1,5 +1,6 @@
 const TicketType = require('../models/TicketType');
 const AppError = require('../utils/AppError');
+const { promoteWaitlisted } = require('./waitlist.service');
 
 // event.capacity caps the TOTAL tickets offered across all ticket types. Ticket inventory stays the
 // single source of truth (no second counter that could drift): the cap is checked when tickets are
@@ -50,6 +51,12 @@ async function updateTicketType(event, ticketType, updates) {
   }
   Object.assign(ticketType, updates);
   await ticketType.save();
+
+  // more room, or the ticket is back on sale: offer the free places to the people waiting, oldest first
+  if (updates.quantity !== undefined || updates.isActive === true) {
+    const promoted = await promoteWaitlisted(ticketType._id);
+    if (promoted > 0) return (await TicketType.findById(ticketType._id)) || ticketType; // show the new sold count
+  }
   return ticketType;
 }
 
