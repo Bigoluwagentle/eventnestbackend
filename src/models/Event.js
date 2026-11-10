@@ -84,7 +84,7 @@ const eventSchema = new mongoose.Schema(
     // attendees = registered attendees, event staff and members, public = anyone who can see the event page
     galleryAccess: { type: String, enum: ['private', 'attendees', 'public'], default: 'private' },
 
-    // people currently holding a place (confirmed or waiting to pay); updated in the same transactions as ticket inventory
+    people currently holding a place (confirmed or waiting to pay); updated in the same transactions as ticket inventory
     registrationCount: { type: Number, default: 0, min: 0 },
 
     status: {
