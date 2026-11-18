@@ -6,4 +6,5 @@ module.exports = [
   require('./lifecycle.docs'),
   require('./admin.docs'),
   require('./saved.docs'),
+  require('./waitlist.docs'),
 ];
