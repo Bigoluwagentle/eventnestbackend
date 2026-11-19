@@ -92,7 +92,7 @@ const listPublicEventsSchema = z.object({
     eventType: z.enum(['physical', 'virtual', 'hybrid']).optional(),
     city: z.string().trim().max(100).optional(),
     search: z.string().trim().max(100).optional(),
-    sort: z.enum(['upcoming', 'newest']).default('upcoming'),
+    sort: z.enum(['upcoming', 'newest', 'popular']).default('upcoming'),
   }),
 });
 
